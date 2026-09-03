@@ -1,0 +1,22 @@
+[tools]
+node = "26.8.1"
+
+[tasks.dev]
+description = "Start the development server"
+run = "npm run dev"
+
+[tasks.build]
+description = "Build the static site into out/"
+run = "npm run build"
+
+[tasks.lint]
+description = "Run ESLint"
+run = "npm run lint"
+
+[tasks.typecheck]
+description = "Run the TypeScript type checker"
+run = "npm run typecheck"
+
+[tasks.ci]
+description = "Run every check the CI pipeline runs"
+depends = ["lint", "typecheck", "build"]
