@@ -46,8 +46,63 @@ export type Pose = {
   chairPush: number;
 };
 
-export const SITTING_HIP_Y = 0.52;
-export const STANDING_HIP_Y = 0.93;
+/** Rig measurements shared by the pose maths and the mesh layout, in metres. */
+export const THIGH = 0.4;
+export const SHIN = 0.38;
+/** Leg root sits this far below the hips group origin. */
+export const HIP_DROP = 0.1;
+/** Ankle height that puts the sole of the shoe flat on the floor. */
+export const ANKLE_Y = 0.055;
+
+export const SITTING_HIP_Y = 0.56;
+export const STANDING_HIP_Y = 0.94;
+
+const clamp = (v: number, lo: number, hi: number) =>
+  v < lo ? lo : v > hi ? hi : v;
+
+export type LegAngles = {
+  hipRotX: number;
+  kneeRotX: number;
+};
+
+/**
+ * Two-link IK for one leg, picking the knee-forward solution.
+ *
+ * Hand-tuned hip and knee angles drift out of sync with the hip height the
+ * moment either changes, which is how the feet ended up sunk under the floor.
+ * Solving for the ankle position instead keeps them planted in every pose.
+ *
+ * @param hipY   hip height above the floor, in body space
+ * @param ankleZ how far in front of the hips the ankle should land
+ * @param ankleY ankle height; the default rests the shoe on the floor
+ */
+export function solveLeg(hipY: number, ankleZ: number, ankleY = ANKLE_Y): LegAngles {
+  const jointY = hipY - HIP_DROP;
+  const dy = ankleY - jointY;
+  // Keep the target just inside full extension so acos never goes flat.
+  const reach = clamp(Math.hypot(ankleZ, dy), 0.05, THIGH + SHIN - 0.005);
+  const base = Math.atan2(ankleZ, -dy);
+
+  const cosThigh = clamp(
+    (THIGH * THIGH + reach * reach - SHIN * SHIN) / (2 * THIGH * reach),
+    -1,
+    1,
+  );
+  const cosKnee = clamp(
+    (THIGH * THIGH + SHIN * SHIN - reach * reach) / (2 * THIGH * SHIN),
+    -1,
+    1,
+  );
+
+  return {
+    // Positive rotX swings a limb backward, so the forward thigh angle negates.
+    hipRotX: -(base + Math.acos(cosThigh)),
+    kneeRotX: Math.PI - Math.acos(cosKnee),
+  };
+}
+
+const SEATED_LEGS = solveLeg(SITTING_HIP_Y, 0.4);
+const STANDING_LEGS = solveLeg(STANDING_HIP_Y, 0.02);
 
 export const restPose: Pose = {
   rootY: STANDING_HIP_Y,
@@ -74,6 +129,16 @@ export const restPose: Pose = {
   kneeRRotX: 0,
   chairPush: 0,
 };
+
+/** Fills in both legs from one IK solution. */
+const legs = (a: LegAngles, spread = 0.04) => ({
+  hipLRotX: a.hipRotX,
+  hipLRotZ: spread,
+  kneeLRotX: a.kneeRotX,
+  hipRRotX: a.hipRotX,
+  hipRRotZ: -spread,
+  kneeRRotX: a.kneeRotX,
+});
 
 export const POSE_KEYS = Object.keys(restPose) as (keyof Pose)[];
 
@@ -141,27 +206,23 @@ function codingPose(t: number, time: number): Pose {
     bounce: breathe * 0.4,
 
     hipRotX: 0,
-    torsoRotX: lerp(-0.16, 0.2, think) + breathe,
+    // Positive pitches the chest forward; the thinking beat leans back.
+    torsoRotX: lerp(0.16, -0.22, think) + breathe,
     torsoRotY: Math.sin(time * 0.4) * 0.03 * typing,
     torsoRotZ: 0,
     headRotX: lerp(0.2, -0.3, think) + Math.sin(time * 0.9) * 0.02,
     headRotY: Math.sin(time * 0.55) * 0.09 * typing,
 
     // Hands rest on the keyboard, then fall away while thinking.
-    shoulderLRotX: lerp(-0.62, -0.1, think) + clatter * 0.018 * typing,
+    shoulderLRotX: lerp(-0.45, -0.05, think) + clatter * 0.018 * typing,
     shoulderLRotZ: lerp(0.16, 0.2, think),
-    elbowLRotX: lerp(-0.62, -0.55, think) + clatterOff * 0.055 * typing,
-    shoulderRRotX: lerp(-0.62, -0.1, think) + clatterOff * 0.018 * typing,
+    elbowLRotX: lerp(-1.18, -0.5, think) + clatterOff * 0.05 * typing,
+    shoulderRRotX: lerp(-0.45, -0.05, think) + clatterOff * 0.018 * typing,
     shoulderRRotZ: lerp(-0.16, -0.2, think),
-    elbowRRotX: lerp(-0.62, -0.55, think) + clatter * 0.055 * typing,
+    elbowRRotX: lerp(-1.18, -0.5, think) + clatter * 0.05 * typing,
 
     // Thighs forward, shins down: the seated L shape.
-    hipLRotX: -1.52,
-    hipLRotZ: 0.08,
-    kneeLRotX: 1.46,
-    hipRRotX: -1.52,
-    hipRRotZ: -0.08,
-    kneeRRotX: 1.46,
+    ...legs(SEATED_LEGS, 0.08),
     chairPush: 0,
   };
 }
@@ -180,7 +241,7 @@ function standUpPose(t: number, time: number): Pose {
     rootRotY: lerp(0, 1.32, step),
     bounce: lift * 0.03,
 
-    torsoRotX: lerp(seated.torsoRotX, -0.18 * (1 - rise), rise),
+    torsoRotX: lerp(seated.torsoRotX, 0.05 * (1 - rise), rise),
     torsoRotY: 0,
     torsoRotZ: 0,
     headRotX: lerp(seated.headRotX, 0.02, rise),
@@ -193,13 +254,12 @@ function standUpPose(t: number, time: number): Pose {
     shoulderRRotZ: lerp(seated.shoulderRRotZ, -0.12, rise),
     elbowRRotX: lerp(seated.elbowRRotX, -0.18, rise),
 
-    // Knees push through a crouch on the way up.
-    hipLRotX: lerp(seated.hipLRotX, -0.05, rise),
-    hipLRotZ: 0.04,
-    kneeLRotX: lerp(seated.kneeLRotX, 0.05, rise),
-    hipRRotX: lerp(seated.hipRRotX, -0.05, rise),
-    hipRRotZ: -0.04,
-    kneeRRotX: lerp(seated.kneeRRotX, 0.05, rise),
+    // Legs are solved for the hip height being interpolated, so the feet
+    // stay on the floor all the way through the rise.
+    ...legs(
+      solveLeg(lerp(SITTING_HIP_Y, STANDING_HIP_Y, rise), lerp(0.4, 0.02, rise)),
+      0.05,
+    ),
     chairPush: rise * 1.05,
   };
 }
@@ -210,6 +270,7 @@ const standingBase = (): Pose => ({
   rootY: STANDING_HIP_Y,
   rootZ: -0.72,
   rootRotY: 1.32,
+  ...legs(STANDING_LEGS, 0.05),
   chairPush: 1.05,
 });
 
@@ -235,10 +296,13 @@ function jacksPose(t: number, time: number): Pose {
     shoulderRRotX: -0.05,
     elbowRRotX: lerp(-0.2, -0.05, open),
 
+    // Feet leave the floor on every hop, so a small knee bend is fine here.
+    hipLRotX: STANDING_LEGS.hipRotX,
+    hipRRotX: STANDING_LEGS.hipRotX,
+    kneeLRotX: STANDING_LEGS.kneeRotX + air * 0.16,
+    kneeRRotX: STANDING_LEGS.kneeRotX + air * 0.16,
     hipLRotZ: lerp(0.03, 0.34, open),
     hipRRotZ: lerp(-0.03, -0.34, open),
-    kneeLRotX: 0.06 + air * 0.18,
-    kneeRRotX: 0.06 + air * 0.18,
   };
 }
 
@@ -264,10 +328,7 @@ function twistPose(t: number, time: number): Pose {
     shoulderRRotX: -0.12 * toLeft,
     elbowRRotX: lerp(-0.25, -0.35, toLeft),
 
-    hipLRotZ: 0.12,
-    hipRRotZ: -0.12,
-    kneeLRotX: 0.04,
-    kneeRRotX: 0.04,
+    ...legs(STANDING_LEGS, 0.11),
   };
 }
 
@@ -292,12 +353,7 @@ function toeTouchPose(t: number, time: number): Pose {
     shoulderRRotZ: -0.14,
     elbowRRotX: lerp(-0.2, -0.04, fold),
 
-    hipLRotX: 0.06 * fold,
-    hipRRotX: 0.06 * fold,
-    hipLRotZ: 0.06,
-    hipRRotZ: -0.06,
-    kneeLRotX: -0.08 * fold,
-    kneeRRotX: -0.08 * fold,
+    ...legs(solveLeg(STANDING_HIP_Y - fold * 0.06, 0.02), 0.06),
   };
 }
 
@@ -305,10 +361,11 @@ function toeTouchPose(t: number, time: number): Pose {
 function squatPose(t: number, time: number): Pose {
   const settle = ease(clamp01(t / 0.14)) * ease(clamp01((1 - t) / 0.14));
   const down = ((1 - Math.cos(time * 1.9)) / 2) * settle;
+  const hipY = lerp(STANDING_HIP_Y, 0.62, down);
 
   return {
     ...standingBase(),
-    rootY: lerp(STANDING_HIP_Y, 0.52, down),
+    rootY: hipY,
     torsoRotX: lerp(-0.04, -0.42, down),
     headRotX: lerp(0.02, 0.12, down),
 
@@ -319,12 +376,8 @@ function squatPose(t: number, time: number): Pose {
     shoulderRRotZ: -0.16,
     elbowRRotX: lerp(-0.2, -0.12, down),
 
-    hipLRotX: lerp(-0.02, -1.05, down),
-    hipRRotX: lerp(-0.02, -1.05, down),
-    hipLRotZ: lerp(0.05, 0.2, down),
-    hipRRotZ: lerp(-0.05, -0.2, down),
-    kneeLRotX: lerp(0.03, 1.35, down),
-    kneeRRotX: lerp(0.03, 1.35, down),
+    // Ankles stay under the hips while the hips travel down.
+    ...legs(solveLeg(hipY, 0.05), lerp(0.05, 0.2, down)),
   };
 }
 
@@ -348,10 +401,7 @@ function armCirclesPose(t: number, time: number): Pose {
     shoulderRRotX: Math.sin(spin + Math.PI) * 0.5 * settle,
     elbowRRotX: -0.12,
 
-    hipLRotZ: 0.09,
-    hipRRotZ: -0.09,
-    kneeLRotX: 0.04,
-    kneeRRotX: 0.04,
+    ...legs(STANDING_LEGS, 0.09),
   };
 }
 
@@ -369,7 +419,7 @@ function sitDownPose(t: number, time: number): Pose {
     rootRotY: lerp(standing.rootRotY, 0, walk),
     bounce: 0,
 
-    torsoRotX: lerp(-0.05, seated.torsoRotX, drop),
+    torsoRotX: lerp(0.02, seated.torsoRotX, drop),
     headRotX: lerp(0.02, seated.headRotX, drop),
     headRotY: 0,
 
@@ -380,12 +430,10 @@ function sitDownPose(t: number, time: number): Pose {
     shoulderRRotZ: lerp(-0.12, seated.shoulderRRotZ, drop),
     elbowRRotX: lerp(-0.2, seated.elbowRRotX, drop),
 
-    hipLRotX: lerp(-0.05, seated.hipLRotX, drop),
-    hipLRotZ: 0.06,
-    kneeLRotX: lerp(0.05, seated.kneeLRotX, drop),
-    hipRRotX: lerp(-0.05, seated.hipRRotX, drop),
-    hipRRotZ: -0.06,
-    kneeRRotX: lerp(0.05, seated.kneeRRotX, drop),
+    ...legs(
+      solveLeg(lerp(STANDING_HIP_Y, SITTING_HIP_Y, drop), lerp(0.02, 0.4, drop)),
+      0.06,
+    ),
 
     chairPush: lerp(1.05, 0, drop),
   };

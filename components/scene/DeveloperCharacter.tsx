@@ -4,12 +4,15 @@ import { useFrame } from "@react-three/fiber";
 import { type RefObject, useRef } from "react";
 import type { Group } from "three";
 import {
+  HIP_DROP,
   type Pose,
   POSE_KEYS,
   PHASES,
   type PhaseId,
   resolvePhase,
   restPose,
+  SHIN,
+  THIGH,
 } from "./poses";
 
 const SKIN = "#e9b08a";
@@ -19,11 +22,10 @@ const SHIRT_DARK = "#4f46e5";
 const PANTS = "#334155";
 const SHOE = "#0f172a";
 
-/** Segment lengths, in metres, shared by the rig and the pose maths. */
+/** Arm segment lengths, in metres. Leg lengths live in poses.ts, where the
+ *  IK solver needs them too. */
 const UPPER_ARM = 0.28;
 const FOREARM = 0.26;
-const THIGH = 0.44;
-const SHIN = 0.42;
 const SHOULDER_Y = 0.5;
 const SHOULDER_X = 0.2;
 
@@ -248,7 +250,7 @@ function Leg({
   x: number;
 }) {
   return (
-    <group ref={hipRef} position={[x, -0.1, 0]}>
+    <group ref={hipRef} position={[x, -HIP_DROP, 0]}>
       <mesh castShadow position={[0, -THIGH / 2, 0]}>
         <capsuleGeometry args={[0.075, THIGH - 0.13, 6, 12]} />
         <meshStandardMaterial color={PANTS} roughness={0.85} />

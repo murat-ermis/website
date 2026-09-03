@@ -153,7 +153,7 @@ function CodeLines() {
 
 function Keyboard() {
   return (
-    <group position={[0.02, DESK_TOP_Y + 0.03, DESK_Z - 0.14]} rotation={[0, -0.1, 0]}>
+    <group position={[0.02, DESK_TOP_Y + 0.03, DESK_Z - 0.28]} rotation={[0, -0.1, 0]}>
       <mesh castShadow rotation={[-0.04, 0, 0]}>
         <boxGeometry args={[0.44, 0.018, 0.15]} />
         <meshStandardMaterial color="#111827" roughness={0.6} />
@@ -189,16 +189,16 @@ function Mug() {
 function Chair() {
   return (
     <group position={[0, 0, -0.06]}>
-      <mesh castShadow receiveShadow position={[0, 0.45, 0]}>
+      <mesh castShadow receiveShadow position={[0, 0.395, 0]}>
         <boxGeometry args={[0.46, 0.07, 0.44]} />
         <meshStandardMaterial color={PLASTIC} roughness={0.75} />
       </mesh>
-      <mesh castShadow position={[0, 0.76, -0.22]} rotation={[0.16, 0, 0]}>
+      <mesh castShadow position={[0, 0.7, -0.22]} rotation={[0.16, 0, 0]}>
         <boxGeometry args={[0.44, 0.52, 0.07]} />
         <meshStandardMaterial color={PLASTIC} roughness={0.75} />
       </mesh>
-      <mesh castShadow position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[0.045, 0.045, 0.32, 12]} />
+      <mesh castShadow position={[0, 0.235, 0]}>
+        <cylinderGeometry args={[0.045, 0.045, 0.3, 12]} />
         <meshStandardMaterial color={METAL} roughness={0.4} metalness={0.5} />
       </mesh>
       {[0, 1, 2, 3, 4].map((i) => {
