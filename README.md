@@ -1,97 +1,134 @@
 # personal-website-threejs
 
-[Murat Ermiş](https://github.com/murat-ermis) kişisel tanıtım sitesi. Next.js App
-Router ile yazıldı, tamamen statik olarak dışa aktarılıyor ve GitHub Pages
-üzerinde yayınlanıyor.
+Personal site for [Murat Ermiş](https://github.com/murat-ermis) — a single
+bilingual page built with the Next.js App Router, exported as static HTML and
+published on GitHub Pages.
 
-Ana sayfadaki 3B sahnede bir yazılımcı masasında kod yazıyor; yaklaşık 13 saniye
-sonra masadan kalkıp jumping jack, yana esneme, öne eğilme, squat ve kol çevirme
-hareketlerini yapıyor, ardından masasına dönüyor. Döngü baştan başlıyor.
+The hero scene shows a developer typing at their desk. After about thirteen
+seconds they push the chair aside, get up and run through jumping jacks, side
+stretches, forward folds, squats and arm circles, then sit back down and the
+loop starts over.
 
-## Teknolojiler
-
-| Alan | Seçim |
+| | |
 | --- | --- |
-| Çatı | Next.js 16 (App Router, `output: "export"`) |
-| Dil | TypeScript |
-| Stil | Tailwind CSS 4 |
-| 3B | Three.js + React Three Fiber + drei |
-| Araç sürümleri | mise (`mise.toml`) |
+| Turkish | `/` |
+| English | `/en` |
+
+## Stack
+
+| Area | Choice |
+| --- | --- |
+| Framework | Next.js 16 (App Router, `output: "export"`) |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 |
+| 3D | Three.js + React Three Fiber + drei |
+| Toolchain | mise (`mise.toml`) |
 | CI/CD | GitHub Actions → GitHub Pages |
 
-## Başlarken
+## Getting started
 
-Node sürümü `mise.toml` içinde sabitlenmiştir; `mise` kurulu değilse
-[jdx.dev/mise](https://mise.jdx.dev) adresindeki adımları izleyin.
+The Node version is pinned in `mise.toml`. If you do not have `mise`, follow the
+install steps at [mise.jdx.dev](https://mise.jdx.dev).
 
 ```bash
 mise install && npm ci && mise run dev
 ```
 
-Site `http://localhost:3000` adresinde açılır.
+The site comes up on `http://localhost:3000`.
 
-### Komutlar
+### Tasks
 
-| Komut | Açıklama |
+| Command | What it does |
 | --- | --- |
-| `mise run dev` | Geliştirme sunucusu |
-| `mise run build` | Statik çıktıyı `out/` klasörüne üretir |
+| `mise run dev` | Development server |
+| `mise run build` | Static export into `out/` |
 | `mise run lint` | ESLint |
-| `mise run typecheck` | Rota tiplerini üretir ve `tsc --noEmit` çalıştırır |
-| `mise run ci` | CI'in çalıştırdığı tüm kontroller |
+| `mise run typecheck` | Generates route types, then `tsc --noEmit` |
+| `mise run ci` | Everything CI runs |
 
-## İçeriği düzenleme
+## Editing the content
 
-Sitedeki tüm metinler tek bir dosyada toplanmıştır:
-[`content/site.ts`](content/site.ts). Profil bilgisi, projeler, yetkinlikler,
-deneyim ve menü başlıkları buradan düzenlenir; bileşenlere dokunmaya gerek
-yoktur.
+Every visible string lives in [`content/site.ts`](content/site.ts), and each one
+carries both a Turkish and an English version:
 
-## 3B sahne
+```ts
+tagline: {
+  tr: "...",
+  en: "...",
+},
+```
 
-Sahnede harici bir model dosyası yüklenmez; karakter ve oda tamamen ilkel
-geometrilerden kurulur. Bu sayede yükleme anında ağ isteği yapılmaz.
+Profile details, skills, projects, the experience timeline, the section list and
+all page furniture are edited there — the components never hold copy of their
+own. [`content/i18n.ts`](content/i18n.ts) holds the locale list and the paths
+each locale is served from.
 
-| Dosya | Sorumluluk |
-| --- | --- |
-| [`poses.ts`](components/scene/poses.ts) | Faz zaman çizelgesi ve her faz için eklem açıları |
-| [`DeveloperCharacter.tsx`](components/scene/DeveloperCharacter.tsx) | Karakter iskeleti ve animasyon döngüsü |
-| [`Workstation.tsx`](components/scene/Workstation.tsx) | Masa, monitör, klavye, sandalye |
-| [`Room.tsx`](components/scene/Room.tsx) | Zemin, duvarlar, pencere, raf, bitki |
-| [`ResponsiveCamera.tsx`](components/scene/ResponsiveCamera.tsx) | Kamerayı en-boy oranına göre geri çeker |
-| [`HeroStage.tsx`](components/scene/HeroStage.tsx) | Kontroller, erişilebilirlik metni, `prefers-reduced-motion` |
+Each locale has its own root layout, so `<html lang>` is correct in the exported
+HTML rather than being patched in the browser:
 
-Animasyon, iskelet animasyonu yerine **poz harmanlama** ile çalışır: her faz
-belirli bir zamanda hedef eklem açılarını üretir, `DeveloperCharacter` de mevcut
-pozu üstel sönümleme ile bu hedefe yaklaştırır. Fazlar arası geçişler böylece
-ayrıca yazılmadan yumuşak olur.
+```
+app/(tr)/layout.tsx   -> lang="tr", serves /
+app/(en)/layout.tsx   -> lang="en", serves /en
+```
 
-Yeni bir hareket eklemek için `poses.ts` içinde bir poz fonksiyonu yazıp
-`PHASES` dizisine ekleyin.
+## The 3D scenes
 
-### Notlar
+No external model files are ever downloaded; every scene is built from primitive
+geometry. Six canvases run across the page:
 
-- `three` sürümü `0.182.x` olarak sabitlendi. Daha yeni sürümlerde React Three
-  Fiber'in kullandığı `THREE.Clock` kullanımdan kaldırıldığı için konsolda uyarı
-  çıkıyor. R3F bunu güncelleyince sabitleme kaldırılabilir.
-- `prefers-reduced-motion: reduce` ayarı açık olan ziyaretçilerde animasyon
-  duraklatılmış başlar.
+| Component | Where | What it is |
+| --- | --- | --- |
+| [`HeroStage`](components/scene/HeroStage.tsx) | Hero | The developer, desk and workout loop |
+| [`CodeRain`](components/scene/CodeRain.tsx) | "What I do" | Falling code bars behind the section |
+| [`FlowNetwork`](components/scene/FlowNetwork.tsx) | About | Nodes with a pulse running the edges |
+| [`AmbientField`](components/scene/AmbientField.tsx) | Tech | Drifting shards behind the whole section |
+| [`TechOrbit`](components/scene/TechOrbit.tsx) | Tech | Technology shapes orbiting a core |
+| [`ContactBeacon`](components/scene/ContactBeacon.tsx) | Contact | A knot that speeds up on hover |
 
-## Yayınlama
+Browsers cap how many WebGL contexts may be alive at once, so
+[`LazyScene`](components/scene/LazyScene.tsx) mounts each canvas as it comes
+within 300px of the viewport and unmounts it again once it is well out of view.
+[`SceneFrame`](components/scene/SceneFrame.tsx) holds the settings they share.
 
-`main` dalına yapılan her push, [`deploy.yml`](.github/workflows/deploy.yml) ile
-siteyi derleyip GitHub Pages'e gönderir. Diğer dallar ve pull request'ler
-[`ci.yml`](.github/workflows/ci.yml) ile yalnızca doğrulanır.
+### How the character is animated
 
-### İlk kurulum
+There is no skeletal animation. [`poses.ts`](components/scene/poses.ts) defines a
+timeline of phases; each phase is a function that returns target joint angles for
+a moment in time, and
+[`DeveloperCharacter`](components/scene/DeveloperCharacter.tsx) eases the current
+pose toward that target with exponential damping. Transitions between phases come
+out smooth without being written separately.
 
-1. Depo ayarlarında **Settings → Pages → Build and deployment → Source** alanını
-   **GitHub Actions** olarak seçin.
-2. `main` dalına push edin.
+Leg angles are not hand-tuned. `solveLeg()` is a two-link IK solver: a pose says
+where the ankle should be and the hip and knee angles follow from that, which is
+what keeps the feet planted as the hip height changes through a stand-up or a
+squat.
 
-Site `https://murat-ermis.github.io/personal-website-threejs/` adresinde
-yayınlanır.
+To add a movement, write a pose function in `poses.ts` and append it to `PHASES`.
 
-`basePath`, `configure-pages` adımının bildirdiği değerden otomatik
-ayarlanır; özel alan adına geçtiğinizde ya da depoyu `murat-ermis.github.io`
-olarak yeniden adlandırdığınızda ek bir değişiklik gerekmez.
+### Notes
+
+- `three` is pinned to `0.182.x`. Later releases deprecate the `THREE.Clock`
+  that React Three Fiber still uses, which logs a warning on every canvas. The
+  pin can go once R3F updates.
+- Visitors with `prefers-reduced-motion: reduce` get the hero scene paused, and
+  the decorative scenes render a single static frame.
+
+## Deploying
+
+Every push to `main` builds the site and publishes it through
+[`deploy.yml`](.github/workflows/deploy.yml). Other branches and pull requests
+are only verified, by [`ci.yml`](.github/workflows/ci.yml).
+
+### First-time setup
+
+1. In the repository settings, set **Settings → Pages → Build and deployment →
+   Source** to **GitHub Actions**.
+2. Push to `main`.
+
+The site is published at
+`https://murat-ermis.github.io/personal-website-threejs/`.
+
+`basePath` is taken from whatever the `configure-pages` step reports, so moving
+to a custom domain, or renaming the repository to `murat-ermis.github.io`,
+needs no change here.

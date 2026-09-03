@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 
 export function Section({
+  id,
   eyebrow,
   title,
   lead,
   children,
   className = "",
 }: {
+  id?: string;
   eyebrow?: string;
   title?: string;
   lead?: string;
@@ -14,7 +16,11 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={`mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20 ${className}`}>
+    <section
+      id={id}
+      // scroll-mt clears the sticky header when an anchor link lands here.
+      className={`mx-auto max-w-6xl scroll-mt-20 px-5 py-14 sm:px-8 sm:py-20 ${className}`}
+    >
       {eyebrow ? (
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">
           {eyebrow}

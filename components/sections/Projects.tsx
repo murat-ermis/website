@@ -1,35 +1,30 @@
-import type { Metadata } from "next";
 import { Card, Tag } from "@/components/ui/Card";
 import { Section } from "@/components/ui/Section";
-import { projects } from "@/content/site";
+import type { Locale } from "@/content/i18n";
+import { projects, ui } from "@/content/site";
 
-export const metadata: Metadata = {
-  title: "Yaptıklarım",
-  description:
-    "Üzerinde çalıştığım projeler: dağıtık sistemler, geliştirici platformları ve web arayüzleri.",
-};
-
-export default function ProjectsPage() {
+export function Projects({ locale }: { locale: Locale }) {
   return (
     <Section
-      eyebrow="Yaptıklarım"
-      title="Projeler"
-      lead="Hem üretimde çalışan sistemler hem de öğrenmek için kurduğum yan projeler."
+      id="projeler"
+      eyebrow={ui.projectsEyebrow[locale]}
+      title={ui.projectsTitle[locale]}
+      lead={ui.projectsLead[locale]}
     >
       <div className="grid gap-5 md:grid-cols-2">
         {projects.map((project) => (
           <Card key={project.slug} className="flex flex-col">
             <div className="flex items-baseline justify-between gap-4">
-              <h2 className="text-lg font-semibold text-slate-100">
-                {project.title}
-              </h2>
+              <h3 className="text-lg font-semibold text-slate-100">
+                {project.title[locale]}
+              </h3>
               <span className="shrink-0 font-mono text-xs text-slate-500">
                 {project.year}
               </span>
             </div>
 
             <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">
-              {project.description}
+              {project.description[locale]}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -47,7 +42,7 @@ export default function ProjectsPage() {
                     rel="noreferrer"
                     className="text-sm font-medium text-sky-400 transition hover:text-sky-300"
                   >
-                    Kaynak kodu →
+                    {ui.sourceCode[locale]} →
                   </a>
                 ) : null}
                 {project.href ? (
@@ -57,7 +52,7 @@ export default function ProjectsPage() {
                     rel="noreferrer"
                     className="text-sm font-medium text-sky-400 transition hover:text-sky-300"
                   >
-                    Canlı demo →
+                    {ui.liveDemo[locale]} →
                   </a>
                 ) : null}
               </div>

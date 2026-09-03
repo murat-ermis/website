@@ -2,7 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PHASES, type PhaseId, phaseStart } from "./poses";
+import type { Locale } from "@/content/i18n";
+import { phaseLabels, ui } from "@/content/site";
+import { type PhaseId, phaseStart } from "./poses";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 // The Canvas needs a real DOM, so it is kept out of the static prerender.
@@ -17,15 +19,12 @@ const EXERCISE_PHASE = 1;
 function SceneFallback() {
   return (
     <div className="absolute inset-0 grid place-items-center bg-ink-900">
-      <div className="flex items-center gap-3 text-sm text-slate-400">
-        <span className="size-2 animate-ping rounded-full bg-sky-400" />
-        Sahne yükleniyor…
-      </div>
+      <span className="size-2 animate-ping rounded-full bg-sky-400" />
     </div>
   );
 }
 
-export function HeroStage() {
+export function HeroStage({ locale }: { locale: Locale }) {
   const speedRef = useRef(1);
   const clockRef = useRef(0);
   const [phase, setPhase] = useState<PhaseId>("coding");
@@ -47,7 +46,7 @@ export function HeroStage() {
     setOverride(true);
   }, []);
 
-  const label = PHASES.find((p) => p.id === phase)?.label ?? "";
+  const label = phaseLabels[phase][locale];
 
   return (
     <div className="relative h-[46vh] min-h-[330px] w-full overflow-hidden rounded-2xl border border-white/10 bg-ink-900 shadow-2xl shadow-black/40 sm:h-[60vh] lg:h-[34rem]">
@@ -75,26 +74,22 @@ export function HeroStage() {
           onClick={togglePlaying}
           className="rounded-full border border-white/15 bg-black/45 px-3.5 py-1.5 text-xs font-medium text-slate-100 backdrop-blur transition hover:border-white/35 hover:bg-black/65"
         >
-          {playing ? "Duraklat" : "Devam et"}
+          {playing ? ui.scenePlaying[locale] : ui.scenePaused[locale]}
         </button>
         <button
           type="button"
           onClick={skipToExercise}
           className="rounded-full border border-white/15 bg-black/45 px-3.5 py-1.5 text-xs font-medium text-slate-100 backdrop-blur transition hover:border-white/35 hover:bg-black/65"
         >
-          Jimnastiğe atla
+          {ui.sceneSkip[locale]}
         </button>
       </div>
 
       <p className="pointer-events-none absolute bottom-4 right-4 hidden text-[11px] text-slate-400 sm:block">
-        Sahneyi döndürmek için sürükleyin
+        {ui.sceneDrag[locale]}
       </p>
 
-      <span className="sr-only">
-        Bir yazılımcı bilgisayarında kod yazıyor; yaklaşık on üç saniye sonra
-        masadan kalkıp jumping jack, esneme, öne eğilme, squat ve kol çevirme
-        hareketleri yapıyor, ardından masasına dönüyor.
-      </span>
+      <span className="sr-only">{ui.sceneDescription[locale]}</span>
     </div>
   );
 }
