@@ -109,7 +109,7 @@ export type Project = {
 
 export const projects: readonly Project[] = [
   {
-    slug: "personal-website-threejs",
+    slug: "website",
     title: { tr: "Kişisel Web Sitesi", en: "Personal Website" },
     summary: {
       tr: "Three.js ile canlandırılmış, tamamen statik bir tanıtım sitesi.",
@@ -121,7 +121,7 @@ export const projects: readonly Project[] = [
     },
     year: "2026",
     stack: ["Next.js", "TypeScript", "Three.js", "Tailwind CSS", "GitHub Actions"],
-    repo: "https://github.com/murat-ermis/personal-website-threejs",
+    repo: "https://github.com/murat-ermis/website",
     highlight: true,
   },
   {

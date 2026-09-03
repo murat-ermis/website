@@ -1,4 +1,4 @@
-# personal-website-threejs
+# website
 
 Personal site for [Murat Ermiş](https://github.com/murat-ermis) — a single
 bilingual page built with the Next.js App Router, exported as static HTML and
@@ -127,7 +127,7 @@ are only verified, by [`ci.yml`](.github/workflows/ci.yml).
 2. Push to `main`.
 
 The site is published at
-`https://murat-ermis.github.io/personal-website-threejs/`.
+`https://murat-ermis.github.io/website/`.
 
 `basePath` is taken from whatever the `configure-pages` step reports, so moving
 to a custom domain, or renaming the repository to `murat-ermis.github.io`,
